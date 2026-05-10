@@ -44,6 +44,7 @@ export default function BallotScreen() {
 
   const toggleSelection = (positionId: number, candidateId: number, maxAllowed: number) => {
     const currentSelected = selections[positionId] || [];
+    const limit = Number(maxAllowed); // Ensure it's treated as a number
     
     if (currentSelected.includes(candidateId)) {
       // Remove selection
@@ -52,20 +53,21 @@ export default function BallotScreen() {
         [positionId]: currentSelected.filter(cid => cid !== candidateId)
       });
     } else {
-      // Add selection if under limit
-      if (currentSelected.length < maxAllowed) {
-        setSelections({
-          ...selections,
-          [positionId]: [...currentSelected, candidateId]
-        });
-      } else if (maxAllowed === 1) {
+      // Add selection
+      if (limit === 1) {
         // Swap if only 1 allowed
         setSelections({
           ...selections,
           [positionId]: [candidateId]
         });
+      } else if (limit <= 0 || currentSelected.length < limit) {
+        // If limit is 0 (unlimited) or under limit
+        setSelections({
+          ...selections,
+          [positionId]: [...currentSelected, candidateId]
+        });
       } else {
-        Alert.alert('Limit Reached', `You can only select up to ${maxAllowed} candidates for this position.`);
+        Alert.alert('Limit Reached', `You can only select up to ${limit} candidates for this position.`);
       }
     }
   };
@@ -95,8 +97,26 @@ export default function BallotScreen() {
         selections: Object.values(selections).flat(),
       });
 
-      // Automatically log out after voting
-      await AsyncStorage.removeItem('voter_data');
+      // Generate vote receipt
+      const receiptData = positions.map(p => {
+        const selectedIds = selections[p.id] || [];
+        const selectedCands = p.candidates.filter((c: any) => selectedIds.includes(c.id));
+        return {
+          position: p.name,
+          candidates: selectedCands.map((c: any) => c.name)
+        };
+      }).filter(item => item.candidates.length > 0);
+
+      // Update local voter data to reflect voted status (stay logged in)
+      const updatedDataStr = await AsyncStorage.getItem('voter_data');
+      if (updatedDataStr) {
+        const updatedData = JSON.parse(updatedDataStr);
+        updatedData.has_voted = true;
+        await AsyncStorage.setItem('voter_data', JSON.stringify(updatedData));
+      }
+      
+      // Save receipt
+      await AsyncStorage.setItem('vote_receipt', JSON.stringify(receiptData));
 
       router.replace('/success');
     } catch (error: any) {
@@ -138,9 +158,11 @@ export default function BallotScreen() {
             <View style={styles.positionHeader}>
               <Text style={styles.positionName}>{position.name}</Text>
               <Text style={styles.voteLimitText}>
-                {position.max_votes_allowed > 1 
-                  ? `Select up to ${position.max_votes_allowed}` 
-                  : 'Select 1 candidate'}
+                {position.max_votes_allowed <= 0 
+                  ? 'Select as many as you want'
+                  : position.max_votes_allowed > 1 
+                    ? `Select up to ${position.max_votes_allowed}` 
+                    : 'Select 1 candidate'}
               </Text>
             </View>
 

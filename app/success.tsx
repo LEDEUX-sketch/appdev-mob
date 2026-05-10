@@ -1,12 +1,28 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Colors } from '@/constants/theme';
-import { CircleCheck, LogOut, Share2 } from 'lucide-react-native';
+import { CircleCheck, ArrowLeft } from 'lucide-react-native';
 
 export default function SuccessScreen() {
   const router = useRouter();
+  const [receipt, setReceipt] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchReceipt = async () => {
+      try {
+        const receiptStr = await AsyncStorage.getItem('vote_receipt');
+        if (receiptStr) {
+          setReceipt(JSON.parse(receiptStr));
+        }
+      } catch (error) {
+        console.error('Could not load receipt');
+      }
+    };
+    fetchReceipt();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -22,19 +38,37 @@ export default function SuccessScreen() {
           Your ballot has been securely encrypted and recorded in the system. Thank you for participating in the democratic process.
         </Text>
 
-        <GlassPanel style={styles.infoCard}>
-          <Text style={styles.infoTitle}>What's Next?</Text>
-          <Text style={styles.infoText}>
-            You have now been marked as "Voted" for this election. You can view the results once the administrator concludes the voting period.
-          </Text>
-        </GlassPanel>
+        {receipt.length > 0 ? (
+          <GlassPanel style={styles.infoCard}>
+            <Text style={styles.infoTitle}>Vote Receipt</Text>
+            <Text style={styles.infoSubtitle}>Take a screenshot for your records</Text>
+            
+            <View style={styles.receiptList}>
+              {receipt.map((item, index) => (
+                <View key={index} style={styles.receiptItem}>
+                  <Text style={styles.receiptPosition}>{item.position}</Text>
+                  {item.candidates.map((candName: string, cIdx: number) => (
+                    <Text key={cIdx} style={styles.receiptCandidate}>• {candName}</Text>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </GlassPanel>
+        ) : (
+          <GlassPanel style={styles.infoCard}>
+            <Text style={styles.infoTitle}>What's Next?</Text>
+            <Text style={styles.infoText}>
+              You have now been marked as "Voted" for this election. You can view the results once the administrator concludes the voting period.
+            </Text>
+          </GlassPanel>
+        )}
 
         <TouchableOpacity 
           style={styles.button} 
-          onPress={() => router.replace('/login')}
+          onPress={() => router.replace('/dashboard')}
         >
-          <LogOut size={20} color="#fff" style={{marginRight: 10}} />
-          <Text style={styles.buttonText}>Exit Session</Text>
+          <ArrowLeft size={20} color="#fff" style={{marginRight: 10}} />
+          <Text style={styles.buttonText}>Return to Dashboard</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -45,11 +79,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-    justifyContent: 'center',
-    padding: 24,
   },
   content: {
+    padding: 24,
+    paddingTop: 60,
     alignItems: 'center',
+    paddingBottom: 40,
   },
   iconContainer: {
     width: 150,
@@ -100,6 +135,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     lineHeight: 20,
+  },
+  infoSubtitle: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    marginBottom: 15,
+  },
+  receiptList: {
+    marginTop: 5,
+  },
+  receiptItem: {
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    paddingBottom: 8,
+  },
+  receiptPosition: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  receiptCandidate: {
+    color: '#fff',
+    fontSize: 15,
+    marginLeft: 8,
+    marginBottom: 2,
   },
   button: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',

@@ -5,13 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Colors } from '@/constants/theme';
 import api from '@/services/api';
-import { Vote, Calendar, ChevronRight, LogOut, Info, RefreshCw } from 'lucide-react-native';
+import { Vote, Calendar, ChevronRight, LogOut, Info, RefreshCw, CircleCheck } from 'lucide-react-native';
 
 export default function DashboardScreen() {
   const [elections, setElections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [voterName, setVoterName] = useState('');
+  const [hasVoted, setHasVoted] = useState(false);
   const router = useRouter();
 
   const fetchData = async () => {
@@ -20,6 +21,7 @@ export default function DashboardScreen() {
       if (studentDataStr) {
         const data = JSON.parse(studentDataStr);
         setVoterName(data.name);
+        setHasVoted(data.has_voted || false);
       } else {
         router.replace('/login');
         return;
@@ -51,24 +53,35 @@ export default function DashboardScreen() {
 
   const renderElectionItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
-      activeOpacity={0.8}
-      onPress={() => router.push({ pathname: '/ballot', params: { id: item.id, title: item.title } })}
+      activeOpacity={hasVoted ? 1 : 0.8}
+      onPress={hasVoted ? undefined : () => router.push({ pathname: '/ballot', params: { id: item.id, title: item.title } })}
+      disabled={hasVoted}
     >
-      <GlassPanel style={styles.electionCard}>
+      <GlassPanel style={[styles.electionCard, hasVoted && styles.electionCardVoted]}>
         <View style={styles.cardHeader}>
-          <View style={styles.iconBox}>
-            <Vote size={24} color={Colors.primary} />
+          <View style={[styles.iconBox, hasVoted && styles.iconBoxVoted]}>
+            {hasVoted ? (
+              <CircleCheck size={24} color={Colors.success} />
+            ) : (
+              <Vote size={24} color={Colors.primary} />
+            )}
           </View>
           <View style={styles.cardTitleArea}>
-            <Text style={styles.electionTitle}>{item.title}</Text>
+            <Text style={[styles.electionTitle, hasVoted && styles.electionTitleVoted]}>{item.title}</Text>
             <View style={styles.dateRow}>
-              <Calendar size={14} color={Colors.textMuted} />
-              <Text style={styles.dateText}>
-                Ends: {new Date(item.end_date).toLocaleDateString()}
-              </Text>
+              {hasVoted ? (
+                <Text style={styles.votedBadgeText}>✓ You have already voted</Text>
+              ) : (
+                <>
+                  <Calendar size={14} color={Colors.textMuted} />
+                  <Text style={styles.dateText}>
+                    Ends: {new Date(item.end_date).toLocaleDateString()}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
-          <ChevronRight size={20} color={Colors.textMuted} />
+          {!hasVoted && <ChevronRight size={20} color={Colors.textMuted} />}
         </View>
       </GlassPanel>
     </TouchableOpacity>
@@ -239,5 +252,19 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  electionCardVoted: {
+    opacity: 0.7,
+  },
+  iconBoxVoted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  electionTitleVoted: {
+    color: '#94a3b8',
+  },
+  votedBadgeText: {
+    color: Colors.success,
+    fontSize: 12,
+    fontWeight: '600',
   }
 });
