@@ -18,7 +18,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.ledeux.studentvote"
+      "package": "com.ledeux.studentvote",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "output": "static",
@@ -38,8 +41,7 @@
           }
         }
       ],
-      "expo-web-browser",
-      "expo-barcode-scanner"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,7 +50,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "06b62b21-1d69-42ca-86e2-1e227dc15e6e"
+        "projectId": "d4840c54-8ffa-4a65-b159-7aed95b1fb00"
       }
     }
   }
